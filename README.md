@@ -604,9 +604,6 @@ def main():
             # Run the network loop at 60 FPS
             time.sleep(1 / 60)
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
     except KeyboardInterrupt:
         pass
     finally:
@@ -617,3 +614,7 @@ This project is licensed under the [MIT License](LICENSE).
 if __name__ == "__main__":
     main()
 ```
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
