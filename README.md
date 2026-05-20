@@ -42,6 +42,14 @@ You can find complete runnable examples in the `examples/` directory.
 
 ### 1. The "Easy Mode" (Client-Owned Patch)
 
+This example is the recommended approach for most users. It demonstrates how to initialize the `ArtnetClient` and register a `patch_map` using the custom `patch_dtype`. The `patch_map` acts as the definitive roadmap for the client, detailing exactly how the 1D float array you generate in your logic translates to specific universes and DMX addresses.
+
+**What it does:**
+
+- It creates a tiny patch for three individual channels (Red, Green, Blue) at the beginning of Universe 0.
+- It enters a continuous continuous 60 FPS while-loop, generating shifting values via a mathematical sine wave mapped to an array.
+- Calling `client.set_patched_dmx_values(engine_state)` instantly maps the floats, scales them up to standard 0-255 DMX values, and organizes them perfectly into the pre-allocated internal network packets before dispatch.
+
 See `examples/01_easy_patching.py` for how to bind a rig layout to the client and constantly update array values.
 
 ```python
@@ -103,6 +111,14 @@ if __name__ == "__main__":
 
 ### 2. The "Pipeline Mode" (Stateless Math)
 
+If you are dealing with distinct layers of lighting states—such as a base sequence topped with a high-priority strobe effect mask—you can bypass client patching entirely and use `npArtNet` to evaluate states statelesssly.
+
+**What it does:**
+
+- Shows how to use the helper function `array_to_dmx_matrix` to generate fully constructed 2D representations of multiple different rig patches.
+- Takes a dimmed `base_matrix` and a full-white `strobe_matrix`.
+- Employs NumPy's `np.maximum()` function to execute a mathematically pristine "Highest Takes Precedence" (HTP) blend across all universes at once before injecting the final compiled matrix directly into the sender client via `client.set_dmx_matrix()`.
+
 See `examples/02_pipeline_matrices.py` for dealing with dynamic base arrays and overrides directly.
 
 ```python
@@ -156,6 +172,14 @@ if __name__ == "__main__":
 
 ### 3. Loopback Server
 
+Testing a complex matrix application without physical DMX hardware can be tricky. `npArtNet` features an $O(1)$-routed local Server for immediate feedback.
+
+**What it does:**
+
+- Binds to `127.0.0.1` and actively listens to Art-Net broadcasts on Universes 0 and 1.
+- In a background daemon thread, any incoming broadcast values are instantly parsed and sliced into a 2D matrix structure safely guarded by thread locks.
+- While running this file in one console, you can boot up `01_easy_patching.py` in a separate console to witness continuous value parsing on your CLI instantly.
+
 See `examples/03_local_server.py` for validating your outgoing transmissions.
 
 ```python
@@ -205,6 +229,15 @@ if __name__ == "__main__":
 ```
 
 ### 4. Simple Engine Architecture
+
+This is a comprehensive demonstration of how a complete "Lighting Engine" pairs perfectly with the philosophy of `npArtNet`.
+
+**What it does:**
+
+- Defines fixture object classes (Dimmer, RGB, Moving Spot) representing virtual models of physical lights, isolating their control logic.
+- Utilizes `SimpleEngine` to calculate how many total array indices are required, safely linking the structural layout (Patch) to the specific math instructions embedded in fixtures.
+- Centralizes runtime in `engine.tick(t)`, which calls `f.update()` upon every instantiated fixture so they can manipulate their specific region of the overarching `state` master-float-array.
+- That one continuous array is then fired off into `npArtNet` which handles the complex process of turning a flat list of 0-1 values into standard DMX protocol distributions.
 
 See `examples/04_simple_engine.py` for a more developed abstraction where a "Lighting Engine" manages different fixture types (Dimmers, RGB, Moving Spots). The engine tracks their memory allocations and outputs a single 1D flat array mapping perfectly to the `npArtNet` client.
 
@@ -375,6 +408,14 @@ if __name__ == "__main__":
 ```
 
 ### 5. 8x8 Matrix Random Effects
+
+The true power of mapping floats directly to DMX using NumPy comes from exploiting standard algebraic and statistical arrays provided out-of-the-box by the library.
+
+**What it does:**
+
+- Programmatically constructs a continuous 8x8 RGB Pixel Matrix representing 192 successive DMX channel assignments.
+- Uses `np.random` functions to generate complex behaviors matching the matrix scale instantly avoiding Python `for` loops entirely.
+- Features a timer loop replacing the state completely every 1.0 seconds swapping between smooth float generation (static), boolean discrete colors, or masked logical thresholds targeting extreme sub-selections creating glitch-sparkles.
 
 See `examples/05_matrix_effect.py` for a demonstration of programmatically generating an RGB matrix patch and manipulating it using fast `np.random` NumPy operations every second to create lighting states.
 
