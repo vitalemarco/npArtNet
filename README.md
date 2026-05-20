@@ -1,5 +1,10 @@
 # npArtNet
 
+[![Run Tests](https://github.com/vitalemarco/npArtNet/actions/workflows/test.yml/badge.svg)](https://github.com/vitalemarco/npArtNet/actions/workflows/test.yml)
+[![Publish to PyPI](https://github.com/vitalemarco/npArtNet/actions/workflows/publish.yml/badge.svg)](https://github.com/vitalemarco/npArtNet/actions/workflows/publish.yml)
+[![PyPI version](https://img.shields.io/pypi/v/npartnet.svg)](https://pypi.org/project/npartnet/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+
 A high-performance, NumPy-backed Art-Net matrix client, server, and patcher for Python.
 
 ## Table of Contents
