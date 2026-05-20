@@ -114,6 +114,11 @@ class SimpleEngine:
         return np.array(patch_list, dtype=patch_dtype)
 
     def tick(self, time_sec: float) -> np.ndarray:
+        if self.state is None:
+            raise RuntimeError(
+                "Engine patch map not built yet. Call build_patch_map() first."
+            )
+
         # Ask each fixture to do its math and write to its assigned slice of `self.state`
         for f in self.fixtures:
             f.update(self.state, time_sec)
