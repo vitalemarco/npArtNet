@@ -12,6 +12,13 @@ license = { text = "MIT License" }
 authors = [{ name = "Marco Vitale" }]
 dependencies = ["numpy"]
 keywords = ["artnet", "dmx", "numpy", "lighting", "pixel-mapping"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Multimedia :: Graphics",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License"
+]
 
 [project.urls]
 Homepage = "https://github.com/vitalemarco/npArtNet"
