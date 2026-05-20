@@ -24,6 +24,7 @@ A high-performance, NumPy-backed Art-Net matrix client, server, and patcher for 
     - [3. Engine Driven](#3-engine-driven)
         - [3.1 Simple Engine Architecture](#31-simple-engine-architecture)
         - [3.2 8x8 Matrix Random Effects](#32-8x8-matrix-random-effects)
+- [Acknowledgements](#Acknowledgements)
 - [License](#license)
 
 ## Features
@@ -619,6 +620,10 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
+## Acknowledgements
+
+A huge thank you to [Carlos Valente (@cpvalente)](https://github.com/cpvalente) and the contributors of [stupidArtnet](https://github.com/cpvalente/stupidArtnet). `npArtNet` was inspired by their lightweight approach to the Protocol, which I expanded upon by integrating vectorized NumPy operations.
 
 ## License
 
