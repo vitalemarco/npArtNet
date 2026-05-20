@@ -222,7 +222,7 @@ class ArtnetClient:
 
         for i in range(self.num_universes):
             self.packets[i][12] = self.sequences[i]
-            self.packets[i][18:] = self.buffer[i]
+            self.packets[i][18:] = memoryview(self.buffer[i])
 
             try:
                 self.socket_client.sendto(self.packets[i], (self.target_ip, self.port))
