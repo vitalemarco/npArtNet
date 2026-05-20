@@ -9,7 +9,10 @@ A high-performance, NumPy-backed Art-Net matrix client, server, and patcher for 
 - [Architecture Philosophy](#architecture-philosophy)
 - [Examples](#examples)
     - [1. Server Tools](#1-server-tools)
-        - [1.1 Loopback Server](#11-loopback-server)
+        - [1.1 Server for Easy Patching](#11-server-for-easy-patching)
+        - [1.2 Server for Pipeline Matrices](#12-server-for-pipeline-matrices)
+        - [1.3 Server for Simple Engine](#13-server-for-simple-engine)
+        - [1.4 Server for Matrix Effect](#14-server-for-matrix-effect)
     - [2. Simple Raw Value Sends](#2-simple-raw-value-sends)
         - [2.1 The "Easy Mode" (Client-Owned Patch)](#21-the-easy-mode-client-owned-patch)
         - [2.2 The "Pipeline Mode" (Stateless Math)](#22-the-pipeline-mode-stateless-math)
@@ -45,59 +48,151 @@ You can find complete runnable examples in the `examples/` directory.
 
 ### 1. Server Tools
 
-#### 1.1 Loopback Server
+Testing complex matrix applications without physical DMX hardware can be tricky. `npArtNet` features an $O(1)$-routed local Server for immediate feedback.
 
-Testing a complex matrix application without physical DMX hardware can be tricky. `npArtNet` features an $O(1)$-routed local Server for immediate feedback.
+To easily test each client approach, we have created 4 specialized companion servers. They all bind to `127.0.0.1` in a background daemon thread to instantly parse and cleanly display incoming Art-Net broadcasts.
 
-**What it does:**
+#### 1.1 Server for Easy Patching
 
-- Binds to `127.0.0.1` and actively listens to Art-Net broadcasts on Universes 0 and 1.
-- In a background daemon thread, any incoming broadcast values are instantly parsed and sliced into a 2D matrix structure safely guarded by thread locks.
-- While running this file in one console, you can boot up `2.1_easy_patching.py` in a separate console to witness continuous value parsing on your CLI instantly.
+Tailored for `2.1_easy_patching.py`. Watches Universe 0 and slices just the first 3 channels representing the RGB fading sine waves.
 
-See `examples/1.1_local_server.py` for validating your outgoing transmissions.
+See `examples/1.1_server_easy_patching.py`.
 
 ```python
+import os
 import time
 import numpy as np
 from npArtNet import ArtnetServer
 
-
 def main():
-    """
-    Test your multi-universe math without plugging in a single piece
-    of hardware using the zero-copy server.
-    """
-    # We will listen on the loopback interface on Universes 0 and 1
     host = "127.0.0.1"
+    if os.name == "nt": os.system("")
 
-    print(f"Starting Art-Net server on {host}:6454...")
-    print("Run `2.1_easy_patching.py` in another terminal to see incoming data!")
-    print("Press Ctrl+C to stop.\n")
+    print(f"Starting Easy Patching Server on {host}:6454...")
+    print("Run `2.1_easy_patching.py` in another terminal to see incoming data!\n")
 
-    with ArtnetServer(universes=[0, 1], host=host) as server:
-
-        # Configure numpy print options to keep terminal neat
+    with ArtnetServer(universes=[0], host=host) as server:
         np.set_printoptions(formatter={"int": lambda x: f"{x:3d}"}, linewidth=100)
-
         try:
             while server.is_running:
-                # Thread-safe snapshot of the current states
-                current_lighting_state = server.get_matrix()
+                state = server.get_matrix()
+                print("\033[H\033[J", end="")
+                print("--- 2.1 Easy Patching (Universe 0) ---")
+                print("Ch 1 (R) | Ch 2 (G) | Ch 3 (B)")
+                print(state[0, 0:3])
+                time.sleep(0.1)
+        except KeyboardInterrupt: pass
 
-                # Let's inspect universe 0, channels 1->10 (matrix columns 0->9)
-                uni0_ch1_10 = current_lighting_state[0, 0:10]
+if __name__ == "__main__":
+    main()
+```
 
-                # Print over the same line
-                print(f"Universe 0 | CH 1-10: {uni0_ch1_10}", end="\r")
+#### 1.2 Server for Pipeline Matrices
 
-                time.sleep(0.05)
+Tailored for `2.2_pipeline_matrices.py`. Validates your mathematical HTP blend overrides.
 
-        except KeyboardInterrupt:
-            pass
+See `examples/1.2_server_pipeline_matrices.py`.
 
-    print("\nShut down successfully.")
+```python
+import os
+import time
+import numpy as np
+from npArtNet import ArtnetServer
 
+def main():
+    host = "127.0.0.1"
+    if os.name == "nt": os.system("")
+
+    print(f"Starting Pipeline Matrices Server on {host}:6454...")
+    print("Run `2.2_pipeline_matrices.py` in another terminal to see incoming data!\n")
+
+    with ArtnetServer(universes=[0], host=host) as server:
+        np.set_printoptions(formatter={"int": lambda x: f"{x:3d}"}, linewidth=100)
+        try:
+            while server.is_running:
+                state = server.get_matrix()
+                print("\033[H\033[J", end="")
+                print("--- 2.2 Pipeline Matrices (Universe 0) ---")
+                print("Ch 1-3 (Blended Base + Strobe)")
+                print(state[0, 0:3])
+                time.sleep(0.1)
+        except KeyboardInterrupt: pass
+
+if __name__ == "__main__":
+    main()
+```
+
+#### 1.3 Server for Simple Engine
+
+Tailored for `3.1_simple_engine.py`. Demonstrates safely listening to multiple universes simultaneously.
+
+See `examples/1.3_server_simple_engine.py`.
+
+```python
+import os
+import time
+import numpy as np
+from npArtNet import ArtnetServer
+
+def main():
+    host = "127.0.0.1"
+    if os.name == "nt": os.system("")
+
+    print(f"Starting Simple Engine Server on {host}:6454...")
+    print("Run `3.1_simple_engine.py` in another terminal to see incoming data!\n")
+
+    with ArtnetServer(universes=[0, 1], host=host) as server:
+        np.set_printoptions(formatter={"int": lambda x: f"{x:3d}"}, linewidth=100)
+        try:
+            while server.is_running:
+                state = server.get_matrix()
+                print("\033[H\033[J", end="")
+                print("--- 3.1 Simple Engine ---")
+                print("Universe 0 [Ch 1 (Dim) | Ch 2-4 (RGB)]    :", state[0, 0:4])
+                print("Universe 1 [Ch 1-2 (Pan/Tilt) | Ch 3 (Dim)]:", state[1, 0:3])
+                time.sleep(0.1)
+        except KeyboardInterrupt: pass
+
+if __name__ == "__main__":
+    main()
+```
+
+#### 1.4 Server for Matrix Effect
+
+Tailored for `3.2_matrix_effect.py`. Shows the capability of parsing huge amounts of data instantly by reshaping 192 continuous channels into an 8x8 structural readout map.
+
+See `examples/1.4_server_matrix_effect.py`.
+
+```python
+import os
+import time
+import numpy as np
+from npArtNet import ArtnetServer
+
+def main():
+    host = "127.0.0.1"
+    if os.name == "nt": os.system("")
+
+    print(f"Starting Matrix Effect Server on {host}:6454...")
+    print("Run `3.2_matrix_effect.py` in another terminal to see incoming data!\n")
+
+    with ArtnetServer(universes=[0], host=host) as server:
+        np.set_printoptions(formatter={"int": lambda x: f"{x:3d}"}, linewidth=250)
+        try:
+            while server.is_running:
+                state = server.get_matrix()
+                print("\033[H\033[J", end="")
+                print("--- 3.2 Matrix Effect (Universe 0) ---")
+                print("Showing 192 channels (64 RGB Pixels):\n")
+
+                data = state[0, 0:192]
+                if len(data) == 192:
+                    print(data.reshape((8, 24)))
+                else:
+                    print(data)
+
+                time.sleep(0.1)
+        except KeyboardInterrupt: pass
 
 if __name__ == "__main__":
     main()
