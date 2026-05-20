@@ -1,4 +1,5 @@
 import os
+import subprocess
 import time
 import numpy as np
 from npArtNet import ArtnetServer
@@ -11,7 +12,7 @@ def main():
     """
     host = "127.0.0.1"
     if os.name == "nt":
-        os.system("")
+        subprocess.run("", shell=True)
 
     print(f"Starting Simple Engine Server on {host}:6454...")
     print("Run `3.1_simple_engine.py` in another terminal to see incoming data!")

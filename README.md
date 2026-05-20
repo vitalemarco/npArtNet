@@ -60,13 +60,14 @@ See `examples/1.1_server_easy_patching.py`.
 
 ```python
 import os
+import subprocess
 import time
 import numpy as np
 from npArtNet import ArtnetServer
 
 def main():
     host = "127.0.0.1"
-    if os.name == "nt": os.system("")
+    if os.name == "nt": subprocess.run("", shell=True)
 
     print(f"Starting Easy Patching Server on {host}:6454...")
     print("Run `2.1_easy_patching.py` in another terminal to see incoming data!\n")
@@ -95,13 +96,14 @@ See `examples/1.2_server_pipeline_matrices.py`.
 
 ```python
 import os
+import subprocess
 import time
 import numpy as np
 from npArtNet import ArtnetServer
 
 def main():
     host = "127.0.0.1"
-    if os.name == "nt": os.system("")
+    if os.name == "nt": subprocess.run("", shell=True)
 
     print(f"Starting Pipeline Matrices Server on {host}:6454...")
     print("Run `2.2_pipeline_matrices.py` in another terminal to see incoming data!\n")
@@ -130,13 +132,14 @@ See `examples/1.3_server_simple_engine.py`.
 
 ```python
 import os
+import subprocess
 import time
 import numpy as np
 from npArtNet import ArtnetServer
 
 def main():
     host = "127.0.0.1"
-    if os.name == "nt": os.system("")
+    if os.name == "nt": subprocess.run("", shell=True)
 
     print(f"Starting Simple Engine Server on {host}:6454...")
     print("Run `3.1_simple_engine.py` in another terminal to see incoming data!\n")
@@ -165,13 +168,14 @@ See `examples/1.4_server_matrix_effect.py`.
 
 ```python
 import os
+import subprocess
 import time
 import numpy as np
 from npArtNet import ArtnetServer
 
 def main():
     host = "127.0.0.1"
-    if os.name == "nt": os.system("")
+    if os.name == "nt": subprocess.run("", shell=True)
 
     print(f"Starting Matrix Effect Server on {host}:6454...")
     print("Run `3.2_matrix_effect.py` in another terminal to see incoming data!\n")
