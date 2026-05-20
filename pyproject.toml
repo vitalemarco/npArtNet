@@ -1,13 +1,20 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "npartnet"
 version = "0.1.0"
 description = "A high-performance, NumPy-backed Art-Net matrix client, server, and patcher."
+readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "MIT License" }
+authors = [{ name = "Marco Vitale" }]
 dependencies = ["numpy"]
+
+[project.urls]
+Homepage = "https://github.com/vitalemarco/npArtNet"
+Issues = "https://github.com/vitalemarco/npArtNet/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

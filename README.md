@@ -19,6 +19,7 @@ A high-performance, NumPy-backed Art-Net matrix client, server, and patcher for 
     - [3. Engine Driven](#3-engine-driven)
         - [3.1 Simple Engine Architecture](#31-simple-engine-architecture)
         - [3.2 8x8 Matrix Random Effects](#32-8x8-matrix-random-effects)
+- [License](#license)
 
 ## Features
 
@@ -29,9 +30,19 @@ A high-performance, NumPy-backed Art-Net matrix client, server, and patcher for 
 
 ## Installation
 
-As this is a custom local module, you can install it via pip straight from the directory:
+Install via pip:
 
 ```bash
+pip install npartnet
+```
+
+### Building from Source (For Contributors)
+
+If you want to modify the source code or run the examples:
+
+```bash
+git clone https://github.com/vitalemarco/npArtNet.git
+cd npArtNet
 pip install -e .
 ```
 
@@ -593,6 +604,9 @@ def main():
             # Run the network loop at 60 FPS
             time.sleep(1 / 60)
 
+## License
+
+This project is licensed under the [MIT License](LICENSE).
     except KeyboardInterrupt:
         pass
     finally:
