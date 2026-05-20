@@ -5,12 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "npartnet"
 version = "0.1.0"
-description = "A high-performance, NumPy-backed Art-Net matrix client, server, and patcher."
+description = "A high-performance, NumPy-backed Art-Net DMX client, server, and patcher for Python."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT License" }
 authors = [{ name = "Marco Vitale" }]
 dependencies = ["numpy"]
+keywords = ["artnet", "dmx", "numpy", "lighting", "pixel-mapping"]
 
 [project.urls]
 Homepage = "https://github.com/vitalemarco/npArtNet"
