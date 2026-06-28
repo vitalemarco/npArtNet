@@ -26,4 +26,4 @@ Issues = "https://github.com/vitalemarco/npArtNet/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["npArtNet*"]
+include = ["npArtNet*", "npGdtf*"]

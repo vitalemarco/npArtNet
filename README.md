@@ -24,6 +24,7 @@ A high-performance, NumPy-backed Art-Net matrix client, server, and patcher for 
     - [3. Engine Driven](#3-engine-driven)
         - [3.1 Simple Engine Architecture](#31-simple-engine-architecture)
         - [3.2 8x8 Matrix Random Effects](#32-8x8-matrix-random-effects)
+- [GDTF Patching (npGdtf)](#gdtf-patching-npgdtf)
 - [Acknowledgements](#Acknowledgements)
 - [License](#license)
 
@@ -620,6 +621,53 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
+## GDTF Patching (npGdtf)
+
+`npArtNet` deliberately stays "engine agnostic" — it never learns what a *Moving
+Head* or a *16-bit Pan channel* is. The companion package **`npGdtf`** (shipped
+in this repo, **standard library only — no extra dependencies**) is the smart
+layer that fills that gap: it loads real fixture definitions from `.gdtf` files
+and generates the `patch_dtype` map for you, including automatic coarse/fine
+splits for 16/24-bit channels.
+
+A `.gdtf` file is just a ZIP archive containing a `description.xml`. `npGdtf`
+parses it with `zipfile` + `xml.etree`, reads each DMX mode's channel byte
+offsets, and expands a patched fixture into one source slot per DMX byte so it
+plugs straight into `ArtnetClient`.
+
+```python
+from npArtNet import ArtnetClient
+from npGdtf import load_gdtf, Rig
+
+# 1. Load fixture definitions from .gdtf files
+mover = load_gdtf("MovingHead.gdtf")
+
+# 2. Patch fixtures onto universes / DMX start addresses
+rig = Rig()
+mh1 = rig.patch(mover, mode="Standard", universe=0, address=1)
+mh2 = rig.patch(mover, mode="Standard", universe=1, address=1)
+
+# 3. Compile the layout and register it with the client
+client = ArtnetClient(target_ip="127.0.0.1")
+client.set_patch(rig.build_patch_map())
+
+# 4. Drive fixtures by attribute name (normalized 0.0 - 1.0)
+mh1.set("Dimmer", 1.0)
+mh1.set("Pan", 0.5)   # 16-bit attributes are split coarse/fine automatically
+
+client.set_patched_dmx_values(rig.get_state())
+client.send_package()
+```
+
+See [`examples/4.1_gdtf_patching.py`](examples/4.1_gdtf_patching.py) for a
+complete, self-contained demo (it builds a sample `.gdtf` on the fly, so it runs
+without any vendor file).
+
+**Scope:** `npGdtf` parses the GDTF DMX layout — modes, channels, byte offsets,
+breaks, and channel defaults. Higher-level GDTF concepts (channel functions /
+physical ranges, color wheels, geometry trees, multi-break auto-addressing) are
+intentionally out of scope for now.
 
 ## Acknowledgements
 
