@@ -354,7 +354,7 @@ if __name__ == "__main__":
 
 #### 2.3 Multi-Source Patching
 
-If multiple independent frame sources (e.g. several LED canvases or rooms, each with its own compiled patch) feed a single Art-Net node, `set_patch()` is not enough: it overwrites the routing on every call, forcing a full routing recompute per source, per frame. `set_patches()` binds all sources once at configuration time — it merges every patch into a single routing by shifting each source's `src` indices by the cumulative length of the preceding sources' frames, registers all universes once, and sizes packets once across all patches.
+If multiple independent frame sources (e.g. several LED canvases or zones, each with its own compiled patch) feed a single Art-Net node, `set_patch()` is not enough: it overwrites the routing on every call, forcing a full routing recompute per source, per frame. `set_patches()` binds all sources once at configuration time — it merges every patch into a single routing by shifting each source's `src` indices by the cumulative length of the preceding sources' frames, registers all universes once, and sizes packets once across all patches.
 
 **The Multi-Source Contract:**
 
@@ -371,15 +371,15 @@ from npArtNet import ArtnetClient, patch_dtype
 
 client = ArtnetClient(target_ip="10.0.0.5")
 
-# Two independent rooms, 256 RGB pixels each (768 floats per frame)
-room_a_patch = ...  # patch_dtype array, src indices local to room A
-room_b_patch = ...  # patch_dtype array, src indices local to room B
+# Two independent zones, 256 RGB pixels each (768 floats per frame)
+zone_a_patch = ...  # patch_dtype array, src indices local to zone A
+zone_b_patch = ...  # patch_dtype array, src indices local to zone B
 
 # Bind both patches once, at configuration time
-client.set_patches([room_a_patch, room_b_patch], [768, 768])
+client.set_patches([zone_a_patch, zone_b_patch], [768, 768])
 
 # Inside your render loop: concatenate frames in patch order
-frame = np.concatenate([room_a_frame, room_b_frame])
+frame = np.concatenate([zone_a_frame, zone_b_frame])
 client.set_patched_dmx_values(frame)
 client.send_package()
 ```

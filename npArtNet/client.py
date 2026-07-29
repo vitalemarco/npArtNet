@@ -394,8 +394,8 @@ class ArtnetClient:
 
         Examples
         --------
-        >>> client.set_patches([room_a_patch, room_b_patch], [768, 768])
-        >>> frame = np.concatenate([room_a_frame, room_b_frame])
+        >>> client.set_patches([zone_a_patch, zone_b_patch], [768, 768])
+        >>> frame = np.concatenate([zone_a_frame, zone_b_frame])
         >>> client.set_patched_dmx_values(frame)
         >>> client.send_package()
         """

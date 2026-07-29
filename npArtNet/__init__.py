@@ -68,7 +68,7 @@ client.send_package()
 ```
 
 ### 3. Multi-Source Patching
-If several independent frame sources (e.g. multiple LED canvases or rooms, each with its own
+If several independent frame sources (e.g. multiple LED canvases or zones, each with its own
 compiled patch) feed one Art-Net node, bind all patches once with `set_patches()` instead of
 re-calling `set_patch()` per source, per frame. Each source's `src` indices are shifted by the
 cumulative length of the preceding sources' frames; per frame you pass the concatenation of all
@@ -80,17 +80,17 @@ from npArtNet import ArtnetClient, patch_dtype
 
 client = ArtnetClient(target_ip="10.0.0.5")
 
-# Two independent rooms, 256 RGB pixels each (768 floats per frame).
+# Two independent zones, 256 RGB pixels each (768 floats per frame).
 # src indices in each patch stay local to their own source.
-room_a_patch = ...
-room_b_patch = ...
+zone_a_patch = ...
+zone_b_patch = ...
 
 # Bind once, at configuration time. frame_lengths must be passed in:
 # a source canvas can be larger than its wired patch.
-client.set_patches([room_a_patch, room_b_patch], [768, 768])
+client.set_patches([zone_a_patch, zone_b_patch], [768, 768])
 
 # Inside your render loop: concatenate frames in patch order.
-frame = np.concatenate([room_a_frame, room_b_frame])
+frame = np.concatenate([zone_a_frame, zone_b_frame])
 client.set_patched_dmx_values(frame)
 client.send_package()
 ```
