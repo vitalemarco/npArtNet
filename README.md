@@ -21,6 +21,7 @@ A high-performance, NumPy-backed Art-Net matrix client, server, and patcher for 
     - [2. Simple Raw Value Sends](#2-simple-raw-value-sends)
         - [2.1 The "Easy Mode" (Client-Owned Patch)](#21-the-easy-mode-client-owned-patch)
         - [2.2 The "Pipeline Mode" (Stateless Math)](#22-the-pipeline-mode-stateless-math)
+        - [2.3 Multi-Source Patching](#23-multi-source-patching)
     - [3. Engine Driven](#3-engine-driven)
         - [3.1 Simple Engine Architecture](#31-simple-engine-architecture)
         - [3.2 8x8 Matrix Random Effects](#32-8x8-matrix-random-effects)
@@ -350,6 +351,40 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
+#### 2.3 Multi-Source Patching
+
+If multiple independent frame sources (e.g. several LED canvases or rooms, each with its own compiled patch) feed a single Art-Net node, `set_patch()` is not enough: it overwrites the routing on every call, forcing a full routing recompute per source, per frame. `set_patches()` binds all sources once at configuration time — it merges every patch into a single routing by shifting each source's `src` indices by the cumulative length of the preceding sources' frames, registers all universes once, and sizes packets once across all patches.
+
+**The Multi-Source Contract:**
+
+- Bind patches in order `P0 .. Pn` with frame lengths `L0 .. Ln`. Frame lengths must be passed in: a source canvas can be larger than its wired patch, so lengths cannot be derived from the patch maps.
+- Each frame, pass the concatenation of all source frames in patch order. Each source's frame space is fully reserved by its declared length, even if parts of the canvas are unpatched.
+- One indexed write routes everything; one `send_package()` bursts all universes.
+- Duplicate `(universe, address)` pairs across the merged routing raise a `ValueError` at bind time (NumPy advanced indexing would otherwise be silently last-write-wins).
+
+See `examples/2.3_multi_source_patching.py` for a runnable two-canvas setup.
+
+```python
+import numpy as np
+from npArtNet import ArtnetClient, patch_dtype
+
+client = ArtnetClient(target_ip="10.0.0.5")
+
+# Two independent rooms, 256 RGB pixels each (768 floats per frame)
+room_a_patch = ...  # patch_dtype array, src indices local to room A
+room_b_patch = ...  # patch_dtype array, src indices local to room B
+
+# Bind both patches once, at configuration time
+client.set_patches([room_a_patch, room_b_patch], [768, 768])
+
+# Inside your render loop: concatenate frames in patch order
+frame = np.concatenate([room_a_frame, room_b_frame])
+client.set_patched_dmx_values(frame)
+client.send_package()
+```
+
+`set_patch(patch_map)` remains available and behaves exactly as before — it is now a thin wrapper around the single-source case of `set_patches()`.
 
 ### 3. Engine Driven
 
