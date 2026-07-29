@@ -60,9 +60,9 @@ def main():
 
             # Multi-source contract: concatenate frames in patch order,
             # one indexed write routes everything, one burst sends it all.
-            frame = np.concatenate(
-                [room_a_frame.ravel(), room_b_frame.ravel()]
-            ).astype(np.float32)
+            frame = np.concatenate([room_a_frame.ravel(), room_b_frame.ravel()]).astype(
+                np.float32
+            )
 
             client.set_patched_dmx_values(frame)
             client.send_package()
