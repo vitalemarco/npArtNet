@@ -86,6 +86,10 @@ class ArtnetClient:
             for i in range(self.num_universes)
         ]
 
+        # PATCH ROUTING (EMPTY UNTIL set_patch() / set_patches() IS CALLED)
+        self.has_patch: bool = False
+        self._patch_frame_lengths: list[int] | None = None
+
         # SYNCING MULTIPLE PACKAGES
         self.sync = artsync
         if self.sync:
@@ -339,30 +343,147 @@ class ArtnetClient:
 
         return row_idx
 
-    def set_patch(self, patch_map: np.ndarray):
+    def set_patches(
+        self,
+        patch_maps: list[np.ndarray],
+        frame_lengths: list[int] | None = None,
+    ):
         """
-        Register a patch map directly into the client.
+        Bind multiple source patches into a single merged routing.
 
-        Filters invalid addresses, automatically expands the matrix to accommodate
-        missing universes, pre-computes $O(1)$ routing indices, and dynamically
-        shrinks or grows the packet size based on the highest utilized address.
+        Merges all patch maps into one $O(1)$ routing by shifting each source's
+        ``src`` indices by the cumulative length of the preceding sources' frames.
+        Universes are registered once, packet sizes are grown once across all
+        patches, and routing indices are built once. This is configuration-time
+        work; per frame it costs a single indexed write.
+
+        Multi-Source Contract
+        ---------------------
+        Bind patches in order ``P0 .. Pn`` with frame lengths ``L0 .. Ln``.
+        Each frame, pass the concatenation of all source frames in patch order::
+
+            client.set_patched_dmx_values(np.concatenate([frame0, ..., framen]))
+            client.send_package()
+
+        Each ``framei`` must contain exactly ``Li`` normalized floats (0.0 to 1.0).
+        One indexed write routes everything; one ``send_package()`` bursts all
+        universes. Note that a source's frame space is fully reserved by its
+        declared length ``Li``, even if parts of the canvas are unpatched:
+        offsets are derived from ``frame_lengths``, never from the patch maps.
 
         Parameters
         ----------
-        patch_map : np.ndarray
-            A structured array (patch_dtype) representing the lighting rig.
+        patch_maps : list[np.ndarray]
+            A list of structured arrays (patch_dtype), one per frame source.
+        frame_lengths : list[int] | None, optional
+            The flat frame length of each source, in the same order as
+            ``patch_maps``. Required when binding more than one patch, since a
+            source canvas can be larger than its wired patch and therefore the
+            frame length cannot be derived from the patch map. May be omitted
+            (None) only for a single patch. Default is None.
+
+        Raises
+        ------
+        ValueError
+            If no patch maps are given, if ``frame_lengths`` is missing or
+            mismatched for multiple patches, if a patch references a ``src``
+            index outside its declared frame length, or if duplicate
+            ``(universe, address)`` pairs exist across the merged routing.
+
+        Examples
+        --------
+        >>> client.set_patches([room_a_patch, room_b_patch], [768, 768])
+        >>> frame = np.concatenate([room_a_frame, room_b_frame])
+        >>> client.set_patched_dmx_values(frame)
+        >>> client.send_package()
         """
 
+        if len(patch_maps) == 0:
+            raise ValueError("set_patches requires at least one patch map.")
+
+        # VALIDATE FRAME LENGTHS AND PRECOMPUTE SOURCE OFFSETS
+        if frame_lengths is None:
+            if len(patch_maps) > 1:
+                raise ValueError(
+                    "frame_lengths is required when binding multiple patches: "
+                    "a source canvas can be larger than its wired patch, so "
+                    "frame lengths cannot be derived from the patch maps."
+                )
+            src_offsets = [0]
+        else:
+            if len(frame_lengths) != len(patch_maps):
+                raise ValueError(
+                    f"frame_lengths has {len(frame_lengths)} entries but "
+                    f"{len(patch_maps)} patch maps were given."
+                )
+            if any(length <= 0 for length in frame_lengths):
+                raise ValueError("All frame_lengths must be positive integers.")
+            src_offsets = np.cumsum([0] + list(frame_lengths[:-1])).tolist()
+
+        # MASK, OFFSET AND MERGE ALL PATCHES (LOCALS ONLY UNTIL VALIDATED)
+        merged_src: list[np.ndarray] = []
+        merged_addr: list[np.ndarray] = []
+        merged_universe: list[np.ndarray] = []
+
+        for i, patch_map in enumerate(patch_maps):
+            if patch_map.dtype.fields is None or not all(
+                field in patch_map.dtype.fields
+                for field in ("src", "universe", "address")
+            ):
+                raise ValueError(
+                    f"patch_maps[{i}] must be a structured array (patch_dtype) "
+                    "with 'src', 'universe' and 'address' fields."
+                )
+
+            # MASK INVALID VALUES
+            raw_address = patch_map["address"] - 1
+            valid_mask = (raw_address >= 0) & (raw_address < DMX_UNIVERSE_SIZE)
+
+            src = patch_map["src"][valid_mask].astype(np.int64)
+
+            # ENSURE THE PATCH FITS INSIDE ITS DECLARED FRAME
+            if frame_lengths is not None and len(src) > 0:
+                if int(src.max()) >= frame_lengths[i]:
+                    raise ValueError(
+                        f"patch_maps[{i}] references src index {int(src.max())} "
+                        f"but frame_lengths[{i}] is {frame_lengths[i]}: the "
+                        "concatenated frame would be too short."
+                    )
+
+            # SHIFT SRC INDICES INTO THE CONCATENATED FRAME SPACE
+            merged_src.append(src + src_offsets[i])
+            merged_addr.append(raw_address[valid_mask])
+            merged_universe.append(patch_map["universe"][valid_mask])
+
+        all_src = np.concatenate(merged_src)
+        all_addr = np.concatenate(merged_addr)
+        patch_universes = np.concatenate(merged_universe)
+
+        # REJECT DUPLICATE (UNIVERSE, ADDRESS) PAIRS: NUMPY ADVANCED INDEXING
+        # IS SILENTLY LAST-WRITE-WINS, WHICH WOULD CORRUPT THE ROUTING
+        if len(all_addr) > 0:
+            keys = patch_universes.astype(np.int64) * DMX_UNIVERSE_SIZE + all_addr
+            unique_keys, counts = np.unique(keys, return_counts=True)
+            if np.any(counts > 1):
+                dup_keys = unique_keys[counts > 1]
+                dup_pairs = [
+                    (int(k // DMX_UNIVERSE_SIZE), int(k % DMX_UNIVERSE_SIZE) + 1)
+                    for k in dup_keys[:5]
+                ]
+                raise ValueError(
+                    f"Patch collision: {len(dup_keys)} duplicate "
+                    "(universe, address) pair(s) in the merged routing. "
+                    "First duplicates (universe, 1-based address): "
+                    f"{dup_pairs}."
+                )
+
+        # ROUTING IS VALID: COMMIT IT
         self.has_patch = True
-
-        # MASK INVALID VALUES
-        raw_address = patch_map["address"] - 1
-        valid_mask = (raw_address >= 0) & (raw_address < DMX_UNIVERSE_SIZE)
-
-        # PATCH MAPPING
-        self._patch_src = patch_map["src"][valid_mask]
-        self._patch_addr = raw_address[valid_mask]
-        patch_universes = patch_map["universe"][valid_mask]
+        self._patch_frame_lengths = (
+            list(frame_lengths) if frame_lengths is not None else None
+        )
+        self._patch_src = all_src
+        self._patch_addr = all_addr
 
         # ENSURE ALL UNIVERSES EXIST, IF NOT BUILD THEM
         unique_universes = np.unique(patch_universes)
@@ -375,15 +496,37 @@ class ArtnetClient:
             [self.universe_map[universe] for universe in patch_universes]
         )
 
-        # DYNAMICALLY EXPAND PACKET SIZES
-        for row_idx, _ in zip(self._patch_rows, patch_universes):
-            max_addr = np.max(self._patch_addr[self._patch_rows == row_idx])
-            safe_len = clamp_value(
-                int(max_addr) + 1, 2, DMX_UNIVERSE_SIZE, self.make_even
-            )
-
+        # DYNAMICALLY EXPAND PACKET SIZE ONCE ACROSS ALL PATCHES
+        # (packet_size is a single global column width, so the largest
+        # clamped per-universe requirement equals the clamped global max)
+        if len(all_addr) > 0:
+            max_addr = int(np.max(all_addr))
+            safe_len = clamp_value(max_addr + 1, 2, DMX_UNIVERSE_SIZE, self.make_even)
             if safe_len > self.packet_size:
                 self.set_packet_size(safe_len)
+
+    def set_patch(self, patch_map: np.ndarray):
+        """
+        Register a patch map directly into the client.
+
+        Convenience wrapper for the single-source case of `set_patches()`:
+        filters invalid addresses, automatically expands the matrix to
+        accommodate missing universes, pre-computes $O(1)$ routing indices,
+        and dynamically grows the packet size based on the highest utilized
+        address. No source offset is applied.
+
+        Parameters
+        ----------
+        patch_map : np.ndarray
+            A structured array (patch_dtype) representing the lighting rig.
+
+        Raises
+        ------
+        ValueError
+            If duplicate ``(universe, address)`` pairs exist in the patch.
+        """
+
+        self.set_patches([patch_map])
 
     # --------------------------------
     # DATA
