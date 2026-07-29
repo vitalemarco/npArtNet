@@ -1,3 +1,5 @@
+"""Stateless, vectorized functions for mapping normalized float arrays into DMX matrices."""
+
 from .data_types import DMX_UNIVERSE_SIZE
 import numpy as np
 
@@ -45,7 +47,7 @@ def array_to_dmx_matrix(
     dest_universe = patch_map["universe"]
     dest_address = raw_dest_address[valid_mask]
 
-    # IF THE PATCH MAP IS INVALID RETURN NO UNIVERSES AND A EMPTY MATRIX
+    # IF NO VALID ADDRESSES REMAIN, RETURN NO UNIVERSES AND AN EMPTY MATRIX
     if len(dest_address) == 0:
         return [], np.zeros((0, 0), dtype=np.uint8)
 
@@ -75,7 +77,7 @@ def values_to_universe(
     """
     Extract and map data exclusively for a single specified universe.
 
-    Ideal for lightweight single-universe setups or feeding `set_dmx_value()`.
+    Ideal for lightweight single-universe setups or feeding ``set_dmx_value()``.
 
     Parameters
     ----------

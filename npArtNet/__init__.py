@@ -1,20 +1,20 @@
 """
 npArtNet
-=====
+========
 
 A high-performance, NumPy-backed Art-Net matrix client, server, and patcher.
 This package provides a vectorized architecture for routing, sending, and receiving
 massive amounts of DMX data over the Art-Net protocol using NumPy arrays.
 
 Features
------
+--------
 - **Vectorized Patching:** Map flattened arrays of normalized floats directly to DMX universes and addresses instantly.
 - **Dynamic Packet Sizing:** Automatically shrinks UDP payload sizes based on the highest patched address to save network bandwidth.
 - **Zero-Copy Server:** An O(1) routed receiver that maps incoming UDP packets directly into a 2D NumPy array for high-speed local loopback testing.
 - **Engine Agnostic:** Built to accept generic float arrays (`0.0` to `1.0`), leaving 16-bit splits and fixture logic to your higher-level engine.
 
 Examples
------
+--------
 
 ### 1. The "Easy Mode" (Client-Owned Patch)
 
@@ -50,8 +50,7 @@ For power users who need to generate and blend multiple matrices (e.g., adding a
 
 ```python
 import numpy as np
-from npArtNet import ArtnetClient
-from npArtNet.patch import array_to_dmx_matrix
+from npArtNet import ArtnetClient, array_to_dmx_matrix
 
 client = ArtnetClient(target_ip="10.0.0.5")
 
@@ -117,7 +116,7 @@ with ArtnetServer(universes=[0, 1], host="127.0.0.1") as server:
 ```
 
 Architecture Philosophy: Smart Logic vs. Dumb Math
------
+--------------------------------------------------
 
 `npArtNet` intentionally does **not** know what a "Moving Head" or a "16-bit Pan channel" is.
 

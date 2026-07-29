@@ -4,15 +4,14 @@ import socket
 import threading
 import numpy as np
 from .utils import make_address_mask
-
-DMX_UNIVERSE_SIZE = 512
+from .data_types import DMX_UNIVERSE_SIZE
 
 
 class ArtnetServer:
     """
     A zero-copy, vectorized Art-Net receiver.
 
-    Uses an $O(1)$ mask dictionary to route incoming UDP packets instantly into
+    Uses an O(1) mask dictionary to route incoming UDP packets instantly into
     a 2D NumPy array. Operates on a background daemon thread for non-blocking ingestion.
 
     Parameters

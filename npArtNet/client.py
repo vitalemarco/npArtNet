@@ -1,3 +1,5 @@
+"""High-performance, NumPy-backed implementation of an Art-Net Client."""
+
 import numpy as np
 import socket
 from .data_types import DMX_UNIVERSE_SIZE
@@ -136,7 +138,7 @@ class ArtnetClient:
         header.append(0x0)
         header.append(14)
 
-        # 12 - SEQUENCE (INT8), PLACEHOLDER (GETS OVERWRITTEN IN SHOW())
+        # 12 - SEQUENCE (INT8), PLACEHOLDER (GETS OVERWRITTEN IN send_package())
         header.append(0x00)
 
         # 13 - PHYSICAL PORT (INT8)
@@ -351,7 +353,7 @@ class ArtnetClient:
         """
         Bind multiple source patches into a single merged routing.
 
-        Merges all patch maps into one $O(1)$ routing by shifting each source's
+        Merges all patch maps into one O(1) routing by shifting each source's
         ``src`` indices by the cumulative length of the preceding sources' frames.
         Universes are registered once, packet sizes are grown once across all
         patches, and routing indices are built once. This is configuration-time
@@ -509,9 +511,9 @@ class ArtnetClient:
         """
         Register a patch map directly into the client.
 
-        Convenience wrapper for the single-source case of `set_patches()`:
+        Convenience wrapper for the single-source case of ``set_patches()``:
         filters invalid addresses, automatically expands the matrix to
-        accommodate missing universes, pre-computes $O(1)$ routing indices,
+        accommodate missing universes, pre-computes O(1) routing indices,
         and dynamically grows the packet size based on the highest utilized
         address. No source offset is applied.
 
@@ -580,8 +582,11 @@ class ArtnetClient:
         """
         Instantly route normalized floats into the internal buffer using the registered patch.
 
-        Requires `set_patch()` to have been called beforehand. Flattens the input array,
-        scales values by 255, and leverages C-backed advanced indexing for assignment.
+        Requires ``set_patch()`` or ``set_patches()`` to have been called beforehand.
+        Flattens the input array, scales values by 255, and leverages C-backed
+        advanced indexing for assignment. With a multi-source patch bound via
+        ``set_patches()``, pass the concatenation of all source frames in patch
+        order.
 
         Parameters
         ----------
@@ -604,6 +609,15 @@ class ArtnetClient:
         self.buffer[self._patch_rows, self._patch_addr] = flat_values[self._patch_src]
 
     def set_full_buffer(self, value: int):
+        """
+        Fill the entire internal buffer with a single DMX value.
+
+        Parameters
+        ----------
+        value : int
+            The 8-bit value to fill (clamped to 0 to 255).
+        """
+
         self.buffer.fill(max(0, min(255, value)))
 
     # --------------------------------
@@ -611,6 +625,7 @@ class ArtnetClient:
     # --------------------------------
 
     def run_cross_fade(self):
+        """Placeholder for future cross-fade functionality. Not yet implemented."""
         pass
 
     # --------------------------------
@@ -635,6 +650,8 @@ class ArtnetClient:
     # RESOURCE MANAGEMENT
     # --------------------------------
     def close(self):
+        """Close the UDP socket."""
+
         self.socket_client.close()
 
     def __enter__(self):
